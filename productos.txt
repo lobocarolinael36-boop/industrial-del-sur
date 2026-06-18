@@ -1,0 +1,2 @@
+1|Manchado|L|AZUL|150|ACTIVO
+2|chiquito|XS|NEGRO|203|ACTIVO

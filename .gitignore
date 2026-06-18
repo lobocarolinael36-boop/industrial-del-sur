@@ -1,0 +1,13 @@
+# Scripts de generacion de documentos (temporales)
+gen_manual.js
+gen_soporte.js
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
