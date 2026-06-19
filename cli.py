@@ -2,214 +2,199 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import os
 
-# -*- coding: utf-8 -*-
+ARCHIVO  = "clientes.txt"
+HEADER   = "#1E3A5F"; ACCENT="#2563EB"; ACCENT_H="#1D4ED8"
+SUCCESS  = "#16A34A"; SUCCESS_H="#15803D"; DANGER="#DC2626"; DANGER_H="#B91C1C"
+NEUTRAL  = "#6B7280"; NEUTRAL_H="#4B5563"; WHITE="#FFFFFF"
+BG       = "#F0F4F8"; TEXT="#111827"; BORDER="#E5E7EB"; ROW_ALT="#EBF5FF"
 
-ARCHIVO = "clientes.txt"
+def flat_btn(parent, text, command, bg, hover):
+    btn = tk.Button(parent, text=text, command=command,
+                    bg=bg, fg=WHITE, relief="flat", bd=0,
+                    font=("Arial", 10, "bold"), cursor="hand2",
+                    activebackground=hover, activeforeground=WHITE, pady=10)
+    btn.bind("<Enter>", lambda e: btn.configure(bg=hover))
+    btn.bind("<Leave>", lambda e: btn.configure(bg=bg))
+    return btn
 
 def crear_archivo():
     if not os.path.exists(ARCHIVO):
         open(ARCHIVO, "w").close()
 
 def limpiar_campos():
-    codigo.set("")
-    nombre.set("")
-    apellido.set("")
-    dni.set("")
-    direccion.set("")
+    for v in (codigo, nombre, apellido, dni, direccion): v.set("")
     estado.set("ACTIVO")
+    status_var.set("Campos limpiados.")
 
 def leer_clientes():
     crear_archivo()
-    clientes = []
-    with open(ARCHIVO, "r") as archivo:
-        for linea in archivo:
-            datos = linea.strip().split("|")
-            if len(datos) == 6:
-                clientes.append(datos)
-    return clientes
+    rows = []
+    with open(ARCHIVO, "r") as f:
+        for line in f:
+            d = line.strip().split("|")
+            if len(d) == 6:
+                rows.append(d)
+    return rows
 
 def guardar_clientes(clientes):
-    with open(ARCHIVO, "w") as archivo:
-        for cliente in clientes:
-            archivo.write("|".join(cliente) + "\n")
+    with open(ARCHIVO, "w") as f:
+        for c in clientes:
+            f.write("|".join(c) + "\n")
 
 def cargar_tabla():
-    for fila in tabla.get_children():
-        tabla.delete(fila)
-    for cliente in leer_clientes():
-        tabla.insert("", "end", values=cliente)
+    for r in tabla.get_children(): tabla.delete(r)
+    for i, c in enumerate(leer_clientes()):
+        tabla.insert("", "end", values=c, tags=("alt" if i % 2 else "normal",))
+    n = len(tabla.get_children())
+    status_var.set(f"{n} cliente{'s' if n != 1 else ''} registrado{'s' if n != 1 else ''}.")
 
 def alta_cliente():
-    if not (codigo.get() and nombre.get() and apellido.get() and dni.get() and direccion.get()):
-        messagebox.showwarning("Atencion", "Debe completar todos los campos, incluida la direccion.")
-        return
-
+    if not all([codigo.get(), nombre.get(), apellido.get(), dni.get(), direccion.get()]):
+        messagebox.showwarning("Atencion", "Complete todos los campos."); return
     if not codigo.get().isdigit():
-        messagebox.showerror("Error", "El Identificador debe ser estrictamente numerico.")
-        return
-   
+        messagebox.showerror("Error", "El Identificador debe ser numerico."); return
     if not dni.get().isdigit():
-        messagebox.showerror("Error", "El DNI debe ser estrictamente numerico.")
-        return
-
+        messagebox.showerror("Error", "El DNI debe ser numerico."); return
     clientes = leer_clientes()
-    for cliente in clientes:
-        if cliente[0] == codigo.get():
-            messagebox.showerror("Error", "El Identificador ya existe.")
-            return
-
-    nuevo = [
-        codigo.get(),
-        nombre.get(),
-        apellido.get(),
-        dni.get(),
-        direccion.get(),
-        estado.get()
-    ]
-
-    clientes.append(nuevo)
-    guardar_clientes(clientes)
-    cargar_tabla()
-    limpiar_campos()
+    if any(c[0] == codigo.get() for c in clientes):
+        messagebox.showerror("Error", "El Identificador ya existe."); return
+    clientes.append([codigo.get(), nombre.get(), apellido.get(), dni.get(), direccion.get(), estado.get()])
+    guardar_clientes(clientes); cargar_tabla(); limpiar_campos()
     messagebox.showinfo("Alta", "Cliente dado de alta correctamente.")
 
 def baja_cliente():
-    if codigo.get() == "":
-        messagebox.showwarning("Atencion", "Ingrese el Identificador del cliente.")
-        return
-
-    clientes = leer_clientes()
-    encontrado = False
-    for cliente in clientes:
-        if cliente[0] == codigo.get():
-            cliente[5] = "BAJA"
-            encontrado = True
-
-    guardar_clientes(clientes)
-    cargar_tabla()
-    if encontrado:
-        messagebox.showinfo("Baja", "Cliente dado de baja correctamente.")
-    else:
-        messagebox.showerror("Error", "Cliente no encontrado.")
+    if not codigo.get():
+        messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
+    clientes = leer_clientes(); found = False
+    for c in clientes:
+        if c[0] == codigo.get(): c[5] = "BAJA"; found = True
+    guardar_clientes(clientes); cargar_tabla()
+    (messagebox.showinfo if found else messagebox.showerror)(
+        "Baja" if found else "Error",
+        "Cliente dado de baja." if found else "Cliente no encontrado.")
 
 def modificar_cliente():
-    if codigo.get() == "":
-        messagebox.showwarning("Atencion", "Ingrese el Identificador del cliente.")
-        return
-   
+    if not codigo.get():
+        messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
     if not dni.get().isdigit():
-        messagebox.showerror("Error", "El DNI debe ser numerico.")
-        return
-   
+        messagebox.showerror("Error", "El DNI debe ser numerico."); return
     if not direccion.get():
-        messagebox.showerror("Error", "La direccion es obligatoria.")
-        return
+        messagebox.showerror("Error", "La direccion es obligatoria."); return
+    clientes = leer_clientes(); found = False
+    for c in clientes:
+        if c[0] == codigo.get():
+            c[1]=nombre.get(); c[2]=apellido.get(); c[3]=dni.get()
+            c[4]=direccion.get(); c[5]=estado.get(); found=True
+    guardar_clientes(clientes); cargar_tabla()
+    (messagebox.showinfo if found else messagebox.showerror)(
+        "Modificacion" if found else "Error",
+        "Cliente modificado." if found else "Cliente no encontrado.")
 
-    clientes = leer_clientes()
-    encontrado = False
-    for cliente in clientes:
-        if cliente[0] == codigo.get():
-            cliente[1] = nombre.get()
-            cliente[2] = apellido.get()
-            cliente[3] = dni.get()
-            cliente[4] = direccion.get()
-            cliente[5] = estado.get()
-            encontrado = True
+def seleccionar(event):
+    sel = tabla.focus()
+    if sel:
+        v = tabla.item(sel, "values")
+        codigo.set(v[0]); nombre.set(v[1]); apellido.set(v[2])
+        dni.set(v[3]); direccion.set(v[4]); estado.set(v[5])
 
-    guardar_clientes(clientes)
-    cargar_tabla()
-    if encontrado:
-        messagebox.showinfo("Modificacion", "Cliente modificado correctamente.")
-    else:
-        messagebox.showerror("Error", "Cliente no encontrado.")
-
-def seleccionar_cliente(event):
-    seleccionado = tabla.focus()
-    if seleccionado:
-        valores = tabla.item(seleccionado, "values")
-        codigo.set(valores[0])
-        nombre.set(valores[1])
-        apellido.set(valores[2])
-        dni.set(valores[3])
-        direccion.set(valores[4])
-        estado.set(valores[5])
-
-# Ventana principal
+# ── Ventana ──────────────────────────────────────────────────────────────
 ventana = tk.Tk()
-ventana.title("Gestion de Clientes")
-ventana.geometry("1000x580")
+ventana.title("Gestion de Clientes — Industrial del Sur")
+ventana.geometry("1020x618")
 ventana.resizable(False, False)
-ventana.configure(bg="#f4f6fa")
+ventana.configure(bg=BG)
+
+hdr = tk.Frame(ventana, bg=HEADER, height=66)
+hdr.pack(fill="x"); hdr.pack_propagate(False)
+tk.Label(hdr, text="INDUSTRIAL DEL SUR", font=("Arial",10,"bold"), bg=HEADER, fg="#93C5FD").place(x=18, y=10)
+tk.Label(hdr, text="GESTION DE CLIENTES", font=("Arial",18,"bold"), bg=HEADER, fg=WHITE).place(x=18, y=30)
+tk.Frame(ventana, bg=ACCENT, height=3).pack(fill="x")
+
+ftr = tk.Frame(ventana, bg=HEADER, height=26)
+ftr.pack(fill="x", side="bottom"); ftr.pack_propagate(False)
+status_var = tk.StringVar()
+tk.Label(ftr, textvariable=status_var, font=("Arial",9), bg=HEADER, fg="#93C5FD").pack(side="left", padx=12, pady=4)
 
 # Variables
-codigo = tk.StringVar()
-nombre = tk.StringVar()
-apellido = tk.StringVar()
-dni = tk.StringVar()
-direccion = tk.StringVar()
-estado = tk.StringVar(value="ACTIVO")
+codigo=tk.StringVar(); nombre=tk.StringVar(); apellido=tk.StringVar()
+dni=tk.StringVar(); direccion=tk.StringVar(); estado=tk.StringVar(value="ACTIVO")
 
-# Titulo
-titulo = tk.Label(ventana, text="GESTION DE CLIENTES", font=("Arial", 22, "bold"), bg="#f4f6fa", fg="#172033")
-titulo.pack(pady=15)
+# ── Tarjeta formulario ───────────────────────────────────────────────────
+fc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+fc.place(x=24, y=74, width=378, height=518)
 
-# Marco formulario
-frame_form = tk.Frame(ventana, bg="white", padx=20, pady=10)
-frame_form.place(x=30, y=80, width=380, height=450)
+fch = tk.Frame(fc, bg=ACCENT, height=36); fch.pack(fill="x"); fch.pack_propagate(False)
+tk.Label(fch, text="  Datos del Cliente", font=("Arial",11,"bold"), bg=ACCENT, fg=WHITE).pack(side="left", padx=10, pady=8)
 
-tk.Label(frame_form, text="Datos del cliente", font=("Arial", 14, "bold"), bg="white").grid(row=0, column=0, columnspan=2, pady=10)
+ff = tk.Frame(fc, bg=WHITE, padx=18, pady=8)
+ff.pack(fill="x")
 
-tk.Label(frame_form, text="Identificador:", bg="white").grid(row=1, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=codigo, width=30).grid(row=1, column=1, pady=5)
+def campo(row, label, var, widget=None):
+    tk.Label(ff, text=label, bg=WHITE, fg=TEXT, font=("Arial",10,"bold"), anchor="w").grid(row=row, column=0, sticky="w", pady=(8,2))
+    w = widget or tk.Entry(ff, textvariable=var, font=("Arial",10), relief="solid", bd=1)
+    w.grid(row=row, column=1, sticky="ew", pady=(8,2), padx=(10,0))
+    return w
 
-tk.Label(frame_form, text="Nombre:", bg="white").grid(row=2, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=nombre, width=30).grid(row=2, column=1, pady=5)
+campo(0, "Identificador:", codigo)
+campo(1, "Nombre:",        nombre)
+campo(2, "Apellido:",      apellido)
+campo(3, "DNI:",           dni)
+campo(4, "Direccion:",     direccion)
+combo = ttk.Combobox(ff, textvariable=estado, values=["ACTIVO","BAJA"], state="readonly", font=("Arial",10))
+campo(5, "Estado:", estado, combo)
+ff.columnconfigure(1, weight=1)
 
-tk.Label(frame_form, text="Apellido:", bg="white").grid(row=3, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=apellido, width=30).grid(row=3, column=1, pady=5)
+tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(4,0))
 
-tk.Label(frame_form, text="DNI:", bg="white").grid(row=4, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=dni, width=30).grid(row=4, column=1, pady=5)
+bf = tk.Frame(fc, bg=WHITE, padx=14, pady=12); bf.pack(fill="x")
+r1 = tk.Frame(bf, bg=WHITE); r1.pack(fill="x", pady=(0,6))
+b_alta = flat_btn(r1, "Alta",     alta_cliente,     SUCCESS, SUCCESS_H)
+b_alta.pack(side="left", fill="x", expand=True, padx=(0,4))
+b_mod  = flat_btn(r1, "Modificar",modificar_cliente, ACCENT,  ACCENT_H)
+b_mod.pack(side="left", fill="x", expand=True)
 
-tk.Label(frame_form, text="Direccion:", bg="white").grid(row=5, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=direccion, width=30).grid(row=5, column=1, pady=5)
+r2 = tk.Frame(bf, bg=WHITE); r2.pack(fill="x", pady=(0,10))
+b_baja = flat_btn(r2, "Baja",    baja_cliente,    DANGER,  DANGER_H)
+b_baja.pack(side="left", fill="x", expand=True, padx=(0,4))
+b_lim  = flat_btn(r2, "Limpiar", limpiar_campos,  NEUTRAL, NEUTRAL_H)
+b_lim.pack(side="left", fill="x", expand=True)
 
-tk.Label(frame_form, text="Estado:", bg="white").grid(row=6, column=0, sticky="w", pady=5)
-ttk.Combobox(frame_form, textvariable=estado, values=["ACTIVO", "BAJA"], state="readonly", width=27).grid(row=6, column=1, pady=5)
+tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14)
+bf2 = tk.Frame(fc, bg=WHITE, padx=14, pady=10); bf2.pack(fill="x")
+b_back = flat_btn(bf2, "Volver al Menu", ventana.destroy, HEADER, "#2D4E7A")
+b_back.pack(fill="x")
 
-# Botones
-tk.Button(frame_form, text="Alta", width=12, bg="#16A34A", fg="white", command=alta_cliente).grid(row=7, column=0, pady=15)
-tk.Button(frame_form, text="Modificar", width=12, bg="#2563EB", fg="white", command=modificar_cliente).grid(row=7, column=1, pady=15)
-tk.Button(frame_form, text="Baja", width=12, bg="#DC2626", fg="white", command=baja_cliente).grid(row=8, column=0, pady=5)
-tk.Button(frame_form, text="Limpiar", width=12, bg="#6B7280", fg="white", command=limpiar_campos).grid(row=8, column=1, pady=5)
+# ── Tarjeta tabla ────────────────────────────────────────────────────────
+sty = ttk.Style(); sty.theme_use("clam")
+sty.configure("I.Treeview", background=WHITE, foreground=TEXT, rowheight=27,
+              fieldbackground=WHITE, font=("Arial",10))
+sty.configure("I.Treeview.Heading", background=HEADER, foreground=WHITE,
+              font=("Arial",10,"bold"), relief="flat", padding=5)
+sty.map("I.Treeview", background=[("selected","#DBEAFE")], foreground=[("selected",HEADER)])
 
-# Tabla
-frame_tabla = tk.Frame(ventana, bg="white")
-frame_tabla.place(x=430, y=80, width=540, height=360)
+tc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+tc.place(x=418, y=74, width=578, height=518)
 
-tabla = ttk.Treeview(frame_tabla, columns=("id", "nombre", "apellido", "dni", "direccion", "estado"), show="headings")
+tch = tk.Frame(tc, bg=HEADER, height=36); tch.pack(fill="x"); tch.pack_propagate(False)
+tk.Label(tch, text="  Listado de Clientes", font=("Arial",11,"bold"), bg=HEADER, fg=WHITE).pack(side="left", padx=10, pady=8)
 
-tabla.heading("id", text="ID")
-tabla.heading("nombre", text="Nombre")
-tabla.heading("apellido", text="Apellido")
-tabla.heading("dni", text="DNI")
-tabla.heading("direccion", text="Direccion")
-tabla.heading("estado", text="Estado")
+tf = tk.Frame(tc, bg=WHITE); tf.pack(fill="both", expand=True)
+vsb = ttk.Scrollbar(tf, orient="vertical"); vsb.pack(side="right", fill="y")
 
-tabla.column("id", width=50)
-tabla.column("nombre", width=90)
-tabla.column("apellido", width=90)
-tabla.column("dni", width=80)
-tabla.column("direccion", width=130)
-tabla.column("estado", width=70)
+tabla = ttk.Treeview(tf, columns=("id","nombre","apellido","dni","direccion","estado"),
+                     show="headings", style="I.Treeview", yscrollcommand=vsb.set)
+vsb.configure(command=tabla.yview)
 
+for col, txt, w, anch in [
+    ("id","ID",52,"center"), ("nombre","Nombre",100,"w"), ("apellido","Apellido",100,"w"),
+    ("dni","DNI",84,"center"), ("direccion","Direccion",142,"w"), ("estado","Estado",82,"center")]:
+    tabla.heading(col, text=txt)
+    tabla.column(col, width=w, minwidth=w, anchor=anch)
+
+tabla.tag_configure("alt",    background=ROW_ALT)
+tabla.tag_configure("normal", background=WHITE)
 tabla.pack(fill="both", expand=True)
-tabla.bind("<<TreeviewSelect>>", seleccionar_cliente)
+tabla.bind("<<TreeviewSelect>>", seleccionar)
 
-# Boton salir
-tk.Button(ventana, text="Salir", width=15, bg="#111827", fg="white", command=ventana.destroy).place(x=820, y=470)
-
-crear_archivo()
-cargar_tabla()
-
+crear_archivo(); cargar_tabla()
 ventana.mainloop()

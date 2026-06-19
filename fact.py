@@ -3,239 +3,232 @@ from tkinter import ttk, messagebox
 import os
 from datetime import datetime
 
-ARCHIVO_CLIENTES = "clientes.txt"
+ARCHIVO_CLIENTES  = "clientes.txt"
 ARCHIVO_PRODUCTOS = "productos.txt"
-CARPETA_FACTURAS = "facturas_emitidas"
+CARPETA_FACTURAS  = "facturas_emitidas"
 
-# Estructuras de datos en memoria para el manejo local de la factura
-clientes_dict = {}
+HEADER   = "#1E3A5F"; ACCENT="#2563EB"; ACCENT_H="#1D4ED8"
+SUCCESS  = "#16A34A"; SUCCESS_H="#15803D"; DANGER="#DC2626"; DANGER_H="#B91C1C"
+NEUTRAL  = "#6B7280"; NEUTRAL_H="#4B5563"; WHITE="#FFFFFF"
+BG       = "#F0F4F8"; TEXT="#111827"; BORDER="#E5E7EB"; ROW_ALT="#EBF5FF"
+
+clientes_dict  = {}
 productos_dict = {}
-items_factura = []  # Guarda listas de: [ID_Prod, Detalle, Cantidad, Precio_Unit, Costo_Total]
+items_factura  = []
+
+def flat_btn(parent, text, command, bg, hover):
+    btn = tk.Button(parent, text=text, command=command,
+                    bg=bg, fg=WHITE, relief="flat", bd=0,
+                    font=("Arial", 10, "bold"), cursor="hand2",
+                    activebackground=hover, activeforeground=WHITE, pady=10)
+    btn.bind("<Enter>", lambda e: btn.configure(bg=hover))
+    btn.bind("<Leave>", lambda e: btn.configure(bg=bg))
+    return btn
 
 def inicializar_entorno():
     if not os.path.exists(CARPETA_FACTURAS):
         os.makedirs(CARPETA_FACTURAS)
 
 def cargar_datos_combobox():
-    # Cargar Clientes
-    clientes_dict.clear()
-    combo_cliente['values'] = ()
+    clientes_dict.clear(); combo_cliente['values'] = ()
     if os.path.exists(ARCHIVO_CLIENTES):
         with open(ARCHIVO_CLIENTES, "r") as f:
-            lista_clientes = []
-            for linea in f:
-                datos = linea.strip().split("|")
-                if len(datos) == 6 and datos[5] == "ACTIVO":
-                    # Formato para el combo: "DNI - Apellido, Nombre"
-                    label = f"{datos[3]} - {datos[2]}, {datos[1]}"
-                    clientes_dict[label] = datos # Guardamos toda la info del cliente
-                    lista_clientes.append(label)
-            combo_cliente['values'] = lista_clientes
+            lista = []
+            for line in f:
+                d = line.strip().split("|")
+                if len(d) == 6 and d[5] == "ACTIVO":
+                    label = f"{d[3]} — {d[2]}, {d[1]}"
+                    clientes_dict[label] = d; lista.append(label)
+            combo_cliente['values'] = lista
 
-    # Cargar Productos
-    productos_dict.clear()
-    combo_producto['values'] = ()
+    productos_dict.clear(); combo_producto['values'] = ()
     if os.path.exists(ARCHIVO_PRODUCTOS):
         with open(ARCHIVO_PRODUCTOS, "r") as f:
-            lista_productos = []
-            for linea in f:
-                datos = linea.strip().split("|")
-                if len(datos) == 6 and datos[5] == "ACTIVO":
-                    # Formato para el combo: "Detalle (Talle: X, Color: Y)"
-                    label = f"{datos[1]} (Talle: {datos[2]}, Col: {datos[3]})"
-                    # Guardamos [ID, Detalle, Precio]
-                    productos_dict[label] = {
-                        "id": datos[0],
-                        "detalle": datos[1],
-                        "precio": int(datos[4]) if datos[4].isdigit() else 0
-                    }
-                    lista_productos.append(label)
-            combo_producto['values'] = lista_productos
+            lista = []
+            for line in f:
+                d = line.strip().split("|")
+                if len(d) == 6 and d[5] == "ACTIVO":
+                    label = f"{d[1]}  (Talle: {d[2]}, Color: {d[3]})"
+                    productos_dict[label] = {"id": d[0], "detalle": d[1],
+                                              "precio": int(d[4]) if d[4].isdigit() else 0}
+                    lista.append(label)
+            combo_producto['values'] = lista
 
-def actualizar_precio_unitario(event):
-    prod_seleccionado = combo_producto.get()
-    if prod_seleccionado in productos_dict:
-        precio_unitario.set(str(productos_dict[prod_seleccionado]["precio"]))
-    else:
-        precio_unitario.set("")
+def actualizar_precio(event):
+    prod = combo_producto.get()
+    precio_unitario.set(str(productos_dict[prod]["precio"]) if prod in productos_dict else "")
 
 def agregar_item():
-    prod_sel = combo_producto.get()
-    cant_sel = cantidad.get()
-
+    prod_sel = combo_producto.get(); cant_sel = cantidad.get()
     if not prod_sel or not cant_sel:
-        messagebox.showwarning("Atención", "Debe seleccionar un producto e ingresar la cantidad.")
-        return
-
+        messagebox.showwarning("Atencion", "Seleccione un producto e ingrese la cantidad."); return
     if not cant_sel.isdigit() or int(cant_sel) <= 0:
-        messagebox.showerror("Error", "La cantidad debe ser un número entero mayor a 0.")
-        return
+        messagebox.showerror("Error", "La cantidad debe ser un numero entero mayor a 0."); return
+    info = productos_dict[prod_sel]
+    cant = int(cant_sel); subtotal = info["precio"] * cant
+    items_factura.append([info["id"], info["detalle"], cant, info["precio"], subtotal])
+    actualizar_vista()
+    combo_producto.set(""); cantidad.set(""); precio_unitario.set("")
 
-    info_prod = productos_dict[prod_sel]
-    id_prod = info_prod["id"]
-    detalle_prod = info_prod["detalle"]
-    prec_unit = info_prod["precio"]
-    cant = int(cant_sel)
-    costo_total_item = prec_unit * cant
-
-    # Validar si el producto ya fue agregado para sumar cantidad o listarlo de nuevo
-    items_factura.append([id_prod, detalle_prod, cant, prec_unit, costo_total_item])
-    
-    actualizar_vista_factura()
-    
-    # Limpiar campos de carga de producto
-    combo_producto.set("")
-    cantidad.set("")
-    precio_unitario.set("")
-
-def actualizar_vista_factura():
-    # Limpiar Treeview de la derecha
-    for fila in tabla_factura.get_children():
-        tabla_factura.delete(fila)
-    
+def actualizar_vista():
+    for r in tabla_factura.get_children(): tabla_factura.delete(r)
     total = 0
-    for item in items_factura:
-        # Inserta: ID, Detalle, Cant, Precio U., Subtotal
-        tabla_factura.insert("", "end", values=(item[0], item[1], item[2], f"${item[3]}", f"${item[4]}"))
+    for i, item in enumerate(items_factura):
+        tabla_factura.insert("", "end",
+            values=(item[0], item[1], item[2], f"${item[3]}", f"${item[4]}"),
+            tags=("alt" if i % 2 else "normal",))
         total += item[4]
-    
-    # Actualizar la etiqueta del costo total general
-    total_factura.set(f"TOTAL: ${total}")
+    total_var.set(f"TOTAL:  ${total:,}")
+    total_lbl.configure(fg="#DC2626" if total > 0 else TEXT)
 
 def limpiar_pantalla():
-    combo_cliente.set("")
-    combo_producto.set("")
-    cantidad.set("")
-    precio_unitario.set("")
-    items_factura.clear()
-    actualizar_vista_factura()
+    combo_cliente.set(""); combo_producto.set("")
+    cantidad.set(""); precio_unitario.set("")
+    items_factura.clear(); actualizar_vista()
+    status_var.set("Pantalla limpiada.")
 
 def finalizar_factura():
     cliente_sel = combo_cliente.get()
     if not cliente_sel:
-        messagebox.showwarning("Atención", "Debe seleccionar un cliente para confeccionar la factura.")
-        return
-    
+        messagebox.showwarning("Atencion", "Seleccione un cliente."); return
     if not items_factura:
-        messagebox.showwarning("Atención", "La factura debe contener al menos un producto.")
-        return
+        messagebox.showwarning("Atencion", "Agregue al menos un producto."); return
 
-    datos_cliente = clientes_dict[cliente_sel]
-    dni_cliente = datos_cliente[3]
-    nombre_cliente = f"{datos_cliente[2]}, {datos_cliente[1]}"
-    direccion_cliente = datos_cliente[4]
-
-    # Calcular total final
-    total_final = sum(item[4] for item in items_factura)
-    
-    # Formatear el archivo de salida
-    fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    timestamp_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nombre_archivo = os.path.join(CARPETA_FACTURAS, f"Factura_{dni_cliente}_{timestamp_archivo}.txt")
+    datos = clientes_dict[cliente_sel]
+    dni = datos[3]; nombre = f"{datos[2]}, {datos[1]}"; direccion = datos[4]
+    total_final = sum(i[4] for i in items_factura)
+    fecha_str   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ts          = datetime.now().strftime("%Y%m%d_%H%M%S")
+    archivo     = os.path.join(CARPETA_FACTURAS, f"Factura_{dni}_{ts}.txt")
 
     try:
-        with open(nombre_archivo, "w", encoding="utf-8") as f:
-            f.write("==================================================\n")
-            f.write("               FACTURA DE COMPRA                  \n")
-            f.write("==================================================\n")
-            f.write(f"Fecha: {fecha_actual}\n")
-            f.write("--------------------------------------------------\n")
-            f.write(f"CLIENTE: {nombre_cliente}\n")
-            f.write(f"DNI: {dni_cliente}\n")
-            f.write(f"Dirección: {direccion_cliente}\n")
-            f.write("==================================================\n")
+        with open(archivo, "w", encoding="utf-8") as f:
+            f.write("=" * 50 + "\n")
+            f.write("          FACTURA DE COMPRA\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"Fecha: {fecha_str}\n")
+            f.write("-" * 50 + "\n")
+            f.write(f"CLIENTE: {nombre}\n")
+            f.write(f"DNI: {dni}\n")
+            f.write(f"Direccion: {direccion}\n")
+            f.write("=" * 50 + "\n")
             f.write(f"{'ID':<5} {'Detalle':<20} {'Cant':<5} {'P.Unit':<8} {'Total':<8}\n")
-            f.write("--------------------------------------------------\n")
+            f.write("-" * 50 + "\n")
             for item in items_factura:
                 f.write(f"{item[0]:<5} {item[1]:<20} {item[2]:<5} ${item[3]:<7} ${item[4]:<7}\n")
-            f.write("==================================================\n")
-            f.write(f"TOTAL A PAGAR: ${total_final}\n")
-            f.write("==================================================\n")
-            f.write("          Gracias por su preferencia.             \n")
-        
-        messagebox.showinfo("Facturación", f"Factura generada con éxito:\n{os.path.basename(nombre_archivo)}")
+            f.write("=" * 50 + "\n")
+            f.write(f"TOTAL A PAGAR: ${total_final:,}\n")
+            f.write("=" * 50 + "\n")
+            f.write("      Gracias por su preferencia.\n")
+        messagebox.showinfo("Facturacion", f"Factura generada:\n{os.path.basename(archivo)}")
+        status_var.set(f"Factura emitida: {os.path.basename(archivo)}")
         limpiar_pantalla()
-        
     except Exception as e:
-        messagebox.showerror("Error", f"No se pudo guardar el archivo de la factura: {e}")
+        messagebox.showerror("Error", f"No se pudo guardar la factura:\n{e}")
 
-# Interfaz gráfica (Mantiene geometría y paleta de los ABM tradicionales)
+# ── Ventana ──────────────────────────────────────────────────────────────
 ventana = tk.Tk()
-ventana.title("Generación de Facturas")
-ventana.geometry("1000x580")
+ventana.title("Facturacion — Industrial del Sur")
+ventana.geometry("1020x618")
 ventana.resizable(False, False)
-ventana.configure(bg="#f4f6fa")
+ventana.configure(bg=BG)
 
+hdr = tk.Frame(ventana, bg=HEADER, height=66)
+hdr.pack(fill="x"); hdr.pack_propagate(False)
+tk.Label(hdr, text="INDUSTRIAL DEL SUR", font=("Arial",10,"bold"), bg=HEADER, fg="#93C5FD").place(x=18, y=10)
+tk.Label(hdr, text="GENERACION DE FACTURAS", font=("Arial",18,"bold"), bg=HEADER, fg=WHITE).place(x=18, y=30)
+tk.Frame(ventana, bg=ACCENT, height=3).pack(fill="x")
 
-cantidad = tk.StringVar()
-precio_unitario = tk.StringVar()
-total_factura = tk.StringVar(value="TOTAL: $0")
+ftr = tk.Frame(ventana, bg=HEADER, height=26)
+ftr.pack(fill="x", side="bottom"); ftr.pack_propagate(False)
+status_var = tk.StringVar(value="Seleccione un cliente y agregue productos.")
+tk.Label(ftr, textvariable=status_var, font=("Arial",9), bg=HEADER, fg="#93C5FD").pack(side="left", padx=12, pady=4)
 
+cantidad       = tk.StringVar()
+precio_unitario= tk.StringVar()
+total_var      = tk.StringVar(value="TOTAL:  $0")
 
-titulo = tk.Label(ventana, text="GENERACIÓN DE FACTURAS", font=("Arial", 22, "bold"), bg="#f4f6fa", fg="#172033")
-titulo.pack(pady=15)
+# ── Tarjeta formulario ───────────────────────────────────────────────────
+fc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+fc.place(x=24, y=74, width=378, height=518)
 
+fch = tk.Frame(fc, bg=ACCENT, height=36); fch.pack(fill="x"); fch.pack_propagate(False)
+tk.Label(fch, text="  Datos de la Venta", font=("Arial",11,"bold"), bg=ACCENT, fg=WHITE).pack(side="left", padx=10, pady=8)
 
-frame_form = tk.Frame(ventana, bg="white", padx=20, pady=10)
-frame_form.place(x=30, y=80, width=380, height=450)
+ff = tk.Frame(fc, bg=WHITE, padx=18, pady=12); ff.pack(fill="x")
 
-tk.Label(frame_form, text="Datos de la Venta", font=("Arial", 14, "bold"), bg="white").grid(row=0, column=0, columnspan=2, pady=10)
+def lbl(t): return tk.Label(ff, text=t, bg=WHITE, fg=TEXT, font=("Arial",10,"bold"), anchor="w")
 
-# Selector de Clientes
-tk.Label(frame_form, text="Seleccionar Cliente:", bg="white").grid(row=1, column=0, sticky="w", pady=5)
-combo_cliente = ttk.Combobox(frame_form, state="readonly", width=27)
-combo_cliente.grid(row=1, column=1, pady=5)
+lbl("Cliente:").grid(row=0, column=0, sticky="w", pady=(0,4))
+combo_cliente = ttk.Combobox(ff, state="readonly", font=("Arial",10))
+combo_cliente.grid(row=0, column=1, sticky="ew", pady=(0,4), padx=(10,0))
 
+tk.Frame(ff, bg=BORDER, height=1).grid(row=1, column=0, columnspan=2, sticky="ew", pady=12)
 
-ttk.Separator(frame_form, orient='horizontal').grid(row=2, column=0, columnspan=2, sticky="ew", pady=15)
+lbl("Producto:").grid(row=2, column=0, sticky="w", pady=(0,4))
+combo_producto = ttk.Combobox(ff, state="readonly", font=("Arial",10))
+combo_producto.grid(row=2, column=1, sticky="ew", pady=(0,4), padx=(10,0))
+combo_producto.bind("<<ComboboxSelected>>", actualizar_precio)
 
+lbl("Precio Unit:").grid(row=3, column=0, sticky="w", pady=(6,4))
+tk.Entry(ff, textvariable=precio_unitario, font=("Arial",10),
+         relief="solid", bd=1, state="readonly").grid(row=3, column=1, sticky="ew", pady=(6,4), padx=(10,0))
 
-tk.Label(frame_form, text="Producto:", bg="white").grid(row=3, column=0, sticky="w", pady=5)
-combo_producto = ttk.Combobox(frame_form, state="readonly", width=27)
-combo_producto.grid(row=3, column=1, pady=5)
-combo_producto.bind("<<ComboboxSelected>>", actualizar_precio_unitario)
+lbl("Cantidad:").grid(row=4, column=0, sticky="w", pady=(6,4))
+tk.Entry(ff, textvariable=cantidad, font=("Arial",10),
+         relief="solid", bd=1).grid(row=4, column=1, sticky="ew", pady=(6,4), padx=(10,0))
+ff.columnconfigure(1, weight=1)
 
-# Mostrar Precio
-tk.Label(frame_form, text="Precio Unitario:", bg="white").grid(row=4, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=precio_unitario, width=30, state="readonly").grid(row=4, column=1, pady=5)
+tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(4,0))
 
-# Cantidad 
-tk.Label(frame_form, text="Cantidad:", bg="white").grid(row=5, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=cantidad, width=30).grid(row=5, column=1, pady=5)
+bf = tk.Frame(fc, bg=WHITE, padx=14, pady=12); bf.pack(fill="x")
+flat_btn(bf, "Agregar Producto", agregar_item, SUCCESS, SUCCESS_H).pack(fill="x", pady=(0,6))
 
-# Botones
-tk.Button(frame_form, text="Agregar Item", width=12, bg="#16A34A", fg="white", command=agregar_item).grid(row=6, column=1, pady=20, sticky="e")
-tk.Button(frame_form, text="Limpiar Todo", width=12, bg="#6B7280", fg="white", command=limpiar_pantalla).grid(row=7, column=0, pady=5)
-tk.Button(frame_form, text="Emitir Factura", width=12, bg="#2563EB", fg="white", font=("Arial", 9, "bold"), command=finalizar_factura).grid(row=7, column=1, pady=5)
+r2 = tk.Frame(bf, bg=WHITE); r2.pack(fill="x", pady=(0,10))
+flat_btn(r2,"Emitir Factura", finalizar_factura, ACCENT,  ACCENT_H ).pack(side="left", fill="x", expand=True, padx=(0,4))
+flat_btn(r2,"Limpiar Todo",   limpiar_pantalla,  NEUTRAL, NEUTRAL_H).pack(side="left", fill="x", expand=True)
 
-frame_factura_vista = tk.Frame(ventana, bg="white")
-frame_factura_vista.place(x=430, y=80, width=540, height=360)
+tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14)
+bf2 = tk.Frame(fc, bg=WHITE, padx=14, pady=10); bf2.pack(fill="x")
+flat_btn(bf2, "Volver al Menu", ventana.destroy, HEADER, "#2D4E7A").pack(fill="x")
 
-tabla_factura = ttk.Treeview(frame_factura_vista, columns=("id", "detalle", "cant", "precio_u", "subtotal"), show="headings")
+# ── Tarjeta tabla ────────────────────────────────────────────────────────
+sty = ttk.Style(); sty.theme_use("clam")
+sty.configure("I.Treeview", background=WHITE, foreground=TEXT, rowheight=27,
+              fieldbackground=WHITE, font=("Arial",10))
+sty.configure("I.Treeview.Heading", background=HEADER, foreground=WHITE,
+              font=("Arial",10,"bold"), relief="flat", padding=5)
+sty.map("I.Treeview", background=[("selected","#DBEAFE")], foreground=[("selected",HEADER)])
 
-tabla_factura.heading("id", text="ID")
-tabla_factura.heading("detalle", text="Detalle Producto")
-tabla_factura.heading("cant", text="Cant.")
-tabla_factura.heading("precio_u", text="P. Unit")
-tabla_factura.heading("subtotal", text="Subtotal")
+tc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+tc.place(x=418, y=74, width=578, height=518)
 
-tabla_factura.column("id", width=40, anchor="center")
-tabla_factura.column("detalle", width=190)
-tabla_factura.column("cant", width=50, anchor="center")
-tabla_factura.column("precio_u", width=80, anchor="e")
-tabla_factura.column("subtotal", width=90, anchor="e")
+tch = tk.Frame(tc, bg=HEADER, height=36); tch.pack(fill="x"); tch.pack_propagate(False)
+tk.Label(tch, text="  Detalle de la Factura", font=("Arial",11,"bold"), bg=HEADER, fg=WHITE).pack(side="left", padx=10, pady=8)
 
+tf = tk.Frame(tc, bg=WHITE); tf.pack(fill="both", expand=True)
+vsb = ttk.Scrollbar(tf, orient="vertical"); vsb.pack(side="right", fill="y")
+
+tabla_factura = ttk.Treeview(tf, columns=("id","detalle","cant","precio_u","subtotal"),
+                              show="headings", style="I.Treeview", yscrollcommand=vsb.set)
+vsb.configure(command=tabla_factura.yview)
+
+for col, txt, w, anch in [
+    ("id","ID",52,"center"), ("detalle","Detalle del Producto",200,"w"),
+    ("cant","Cant.",64,"center"), ("precio_u","Precio U.",92,"center"),
+    ("subtotal","Subtotal",100,"center")]:
+    tabla_factura.heading(col, text=txt); tabla_factura.column(col, width=w, minwidth=w, anchor=anch)
+
+tabla_factura.tag_configure("alt", background=ROW_ALT); tabla_factura.tag_configure("normal", background=WHITE)
 tabla_factura.pack(fill="both", expand=True)
 
-# Sección inferior derecha: Mostrador de costo total consolidado
-lbl_total = tk.Label(ventana, textvariable=total_factura, font=("Arial", 16, "bold"), bg="#f4f6fa", fg="#DC2626")
-lbl_total.place(x=430, y=455)
+# Total display
+total_frame = tk.Frame(tc, bg=WHITE, pady=12)
+total_frame.pack(fill="x")
+tk.Frame(total_frame, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(0,10))
+total_lbl = tk.Label(total_frame, textvariable=total_var,
+                     font=("Arial", 16, "bold"), bg=WHITE, fg=TEXT)
+total_lbl.pack(anchor="e", padx=20)
 
-# Botón salir corporativo
-tk.Button(ventana, text="Volver al Menú", width=15, bg="#111827", fg="white", command=ventana.destroy).place(x=820, y=470)
-
-# Inicializar componentes e hilos de datos
-inicializar_entorno()
-cargar_datos_combobox()
-
+inicializar_entorno(); cargar_datos_combobox()
 ventana.mainloop()

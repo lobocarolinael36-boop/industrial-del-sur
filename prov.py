@@ -2,210 +2,188 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import os
 
-# -*- coding: utf-8 -*-
+ARCHIVO  = "proveedores.txt"
+HEADER   = "#1E3A5F"; ACCENT="#2563EB"; ACCENT_H="#1D4ED8"
+SUCCESS  = "#16A34A"; SUCCESS_H="#15803D"; DANGER="#DC2626"; DANGER_H="#B91C1C"
+NEUTRAL  = "#6B7280"; NEUTRAL_H="#4B5563"; WHITE="#FFFFFF"
+BG       = "#F0F4F8"; TEXT="#111827"; BORDER="#E5E7EB"; ROW_ALT="#EBF5FF"
 
-ARCHIVO = "proveedores.txt"
+def flat_btn(parent, text, command, bg, hover):
+    btn = tk.Button(parent, text=text, command=command,
+                    bg=bg, fg=WHITE, relief="flat", bd=0,
+                    font=("Arial", 10, "bold"), cursor="hand2",
+                    activebackground=hover, activeforeground=WHITE, pady=10)
+    btn.bind("<Enter>", lambda e: btn.configure(bg=hover))
+    btn.bind("<Leave>", lambda e: btn.configure(bg=bg))
+    return btn
 
 def crear_archivo():
     if not os.path.exists(ARCHIVO):
         open(ARCHIVO, "w").close()
 
 def limpiar_campos():
-    codigo.set("")
-    empresa.set("")
-    cuit.set("")
-    rubro.set("")
-    contacto.set("")
-    estado.set("ACTIVO")
+    for v in (codigo, empresa, cuit, contacto): v.set("")
+    rubro.set("Telas"); estado.set("ACTIVO")
+    status_var.set("Campos limpiados.")
 
 def leer_proveedores():
     crear_archivo()
-    proveedores = []
-    with open(ARCHIVO, "r") as archivo:
-        for linea in archivo:
-            datos = linea.strip().split("|")
-            if len(datos) == 6:
-                proveedores.append(datos)
-    return proveedores
+    rows = []
+    with open(ARCHIVO, "r") as f:
+        for line in f:
+            d = line.strip().split("|")
+            if len(d) == 6: rows.append(d)
+    return rows
 
 def guardar_proveedores(proveedores):
-    with open(ARCHIVO, "w") as archivo:
+    with open(ARCHIVO, "w") as f:
         for p in proveedores:
-            archivo.write("|".join(p) + "\n")
+            f.write("|".join(p) + "\n")
 
 def cargar_tabla():
-    for fila in tabla.get_children():
-        tabla.delete(fila)
-    for p in leer_proveedores():
-        tabla.insert("", "end", values=p)
+    for r in tabla.get_children(): tabla.delete(r)
+    for i, p in enumerate(leer_proveedores()):
+        tabla.insert("", "end", values=p, tags=("alt" if i % 2 else "normal",))
+    n = len(tabla.get_children())
+    status_var.set(f"{n} proveedor{'es' if n != 1 else ''} registrado{'s' if n != 1 else ''}.")
 
 def alta_proveedor():
-    if not (codigo.get() and empresa.get() and cuit.get() and rubro.get() and contacto.get()):
-        messagebox.showwarning("Atencion", "Debe completar todos los campos del proveedor.")
-        return
-
+    if not all([codigo.get(), empresa.get(), cuit.get(), rubro.get(), contacto.get()]):
+        messagebox.showwarning("Atencion", "Complete todos los campos."); return
     if not codigo.get().isdigit():
-        messagebox.showerror("Error", "El Identificador debe ser estrictamente numerico.")
-        return
-   
+        messagebox.showerror("Error", "El Identificador debe ser numerico."); return
     if not cuit.get().isdigit():
-        messagebox.showerror("Error", "El CUIT debe ser estrictamente numerico (sin guiones).")
-        return
-
+        messagebox.showerror("Error", "El CUIT debe ser numerico (sin guiones)."); return
     proveedores = leer_proveedores()
-    for p in proveedores:
-        if p[0] == codigo.get():
-            messagebox.showerror("Error", "El Identificador ya existe.")
-            return
-
-    nuevo = [
-        codigo.get(),
-        empresa.get(),
-        cuit.get(),
-        rubro.get(),
-        contacto.get(),
-        estado.get()
-    ]
-
-    proveedores.append(nuevo)
-    guardar_proveedores(proveedores)
-    cargar_tabla()
-    limpiar_campos()
+    if any(p[0] == codigo.get() for p in proveedores):
+        messagebox.showerror("Error", "El Identificador ya existe."); return
+    proveedores.append([codigo.get(), empresa.get(), cuit.get(), rubro.get(), contacto.get(), estado.get()])
+    guardar_proveedores(proveedores); cargar_tabla(); limpiar_campos()
     messagebox.showinfo("Alta", "Proveedor dado de alta correctamente.")
 
 def baja_proveedor():
-    if codigo.get() == "":
-        messagebox.showwarning("Atencion", "Ingrese el Identificador del proveedor.")
-        return
-
-    proveedores = leer_proveedores()
-    encontrado = False
+    if not codigo.get():
+        messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
+    proveedores = leer_proveedores(); found = False
     for p in proveedores:
-        if p[0] == codigo.get():
-            p[5] = "BAJA"
-            encontrado = True
-
-    guardar_proveedores(proveedores)
-    cargar_tabla()
-    if encontrado:
-        messagebox.showinfo("Baja", "Proveedor dado de baja correctamente.")
-    else:
-        messagebox.showerror("Error", "Proveedor no encontrado.")
+        if p[0] == codigo.get(): p[5] = "BAJA"; found = True
+    guardar_proveedores(proveedores); cargar_tabla()
+    (messagebox.showinfo if found else messagebox.showerror)(
+        "Baja" if found else "Error",
+        "Proveedor dado de baja." if found else "Proveedor no encontrado.")
 
 def modificar_proveedor():
-    if codigo.get() == "":
-        messagebox.showwarning("Atencion", "Ingrese el Identificador del proveedor.")
-        return
-   
+    if not codigo.get():
+        messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
     if not cuit.get().isdigit():
-        messagebox.showerror("Error", "El CUIT debe ser numerico.")
-        return
-
-    proveedores = leer_proveedores()
-    encontrado = False
+        messagebox.showerror("Error", "El CUIT debe ser numerico."); return
+    proveedores = leer_proveedores(); found = False
     for p in proveedores:
         if p[0] == codigo.get():
-            p[1] = empresa.get()
-            p[2] = cuit.get()
-            p[3] = rubro.get()
-            p[4] = contacto.get()
-            p[5] = estado.get()
-            encontrado = True
+            p[1]=empresa.get(); p[2]=cuit.get(); p[3]=rubro.get()
+            p[4]=contacto.get(); p[5]=estado.get(); found=True
+    guardar_proveedores(proveedores); cargar_tabla()
+    (messagebox.showinfo if found else messagebox.showerror)(
+        "Modificacion" if found else "Error",
+        "Proveedor modificado." if found else "Proveedor no encontrado.")
 
-    guardar_proveedores(proveedores)
-    cargar_tabla()
-    if encontrado:
-        messagebox.showinfo("Modificacion", "Proveedor modificado correctamente.")
-    else:
-        messagebox.showerror("Error", "Proveedor no encontrado.")
+def seleccionar(event):
+    sel = tabla.focus()
+    if sel:
+        v = tabla.item(sel, "values")
+        codigo.set(v[0]); empresa.set(v[1]); cuit.set(v[2])
+        rubro.set(v[3]); contacto.set(v[4]); estado.set(v[5])
 
-def seleccionar_proveedor(event):
-    seleccionado = tabla.focus()
-    if seleccionado:
-        valores = tabla.item(seleccionado, "values")
-        codigo.set(valores[0])
-        empresa.set(valores[1])
-        cuit.set(valores[2])
-        rubro.set(valores[3])
-        contacto.set(valores[4])
-        estado.set(valores[5])
-
-# Ventana principal
+# ── Ventana ──────────────────────────────────────────────────────────────
 ventana = tk.Tk()
-ventana.title("Gestion de Proveedores")
-ventana.geometry("1000x580")
+ventana.title("Gestion de Proveedores — Industrial del Sur")
+ventana.geometry("1020x618")
 ventana.resizable(False, False)
-ventana.configure(bg="#f4f6fa")
+ventana.configure(bg=BG)
+
+hdr = tk.Frame(ventana, bg=HEADER, height=66)
+hdr.pack(fill="x"); hdr.pack_propagate(False)
+tk.Label(hdr, text="INDUSTRIAL DEL SUR", font=("Arial",10,"bold"), bg=HEADER, fg="#93C5FD").place(x=18, y=10)
+tk.Label(hdr, text="GESTION DE PROVEEDORES", font=("Arial",18,"bold"), bg=HEADER, fg=WHITE).place(x=18, y=30)
+tk.Frame(ventana, bg=ACCENT, height=3).pack(fill="x")
+
+ftr = tk.Frame(ventana, bg=HEADER, height=26)
+ftr.pack(fill="x", side="bottom"); ftr.pack_propagate(False)
+status_var = tk.StringVar()
+tk.Label(ftr, textvariable=status_var, font=("Arial",9), bg=HEADER, fg="#93C5FD").pack(side="left", padx=12, pady=4)
 
 # Variables
-codigo = tk.StringVar()
-empresa = tk.StringVar()
-cuit = tk.StringVar()
-rubro = tk.StringVar()
-contacto = tk.StringVar()
-estado = tk.StringVar(value="ACTIVO")
+codigo=tk.StringVar(); empresa=tk.StringVar(); cuit=tk.StringVar()
+rubro=tk.StringVar(value="Telas"); contacto=tk.StringVar(); estado=tk.StringVar(value="ACTIVO")
 
-# Titulo
-titulo = tk.Label(ventana, text="GESTION DE PROVEEDORES", font=("Arial", 22, "bold"), bg="#f4f6fa", fg="#172033")
-titulo.pack(pady=15)
+# ── Tarjeta formulario ───────────────────────────────────────────────────
+fc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+fc.place(x=24, y=74, width=378, height=518)
 
-# Marco formulario
-frame_form = tk.Frame(ventana, bg="white", padx=20, pady=10)
-frame_form.place(x=30, y=80, width=380, height=450)
+fch = tk.Frame(fc, bg=ACCENT, height=36); fch.pack(fill="x"); fch.pack_propagate(False)
+tk.Label(fch, text="  Datos del Proveedor", font=("Arial",11,"bold"), bg=ACCENT, fg=WHITE).pack(side="left", padx=10, pady=8)
 
-tk.Label(frame_form, text="Datos del proveedor", font=("Arial", 14, "bold"), bg="white").grid(row=0, column=0, columnspan=2, pady=10)
+ff = tk.Frame(fc, bg=WHITE, padx=18, pady=8); ff.pack(fill="x")
 
-tk.Label(frame_form, text="Identificador:", bg="white").grid(row=1, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=codigo, width=30).grid(row=1, column=1, pady=5)
+def campo(row, label, var, widget=None):
+    tk.Label(ff, text=label, bg=WHITE, fg=TEXT, font=("Arial",10,"bold"), anchor="w").grid(row=row, column=0, sticky="w", pady=(8,2))
+    w = widget or tk.Entry(ff, textvariable=var, font=("Arial",10), relief="solid", bd=1)
+    w.grid(row=row, column=1, sticky="ew", pady=(8,2), padx=(10,0))
 
-tk.Label(frame_form, text="Razón Social:", bg="white").grid(row=2, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=empresa, width=30).grid(row=2, column=1, pady=5)
+campo(0, "Identificador:", codigo)
+campo(1, "Razon Social:",   empresa)
+campo(2, "CUIT:",          cuit)
+campo(3, "Rubro:", rubro, ttk.Combobox(ff, textvariable=rubro,
+      values=["Telas","Hilanderia","Avios","Tintoreria"], font=("Arial",10)))
+campo(4, "Contacto:",      contacto)
+campo(5, "Estado:", estado, ttk.Combobox(ff, textvariable=estado,
+      values=["ACTIVO","BAJA"], state="readonly", font=("Arial",10)))
+ff.columnconfigure(1, weight=1)
 
-tk.Label(frame_form, text="CUIT:", bg="white").grid(row=3, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=cuit, width=30).grid(row=3, column=1, pady=5)
+tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(4,0))
 
-tk.Label(frame_form, text="Rubro:", bg="white").grid(row=4, column=0, sticky="w", pady=5)
-ttk.Combobox(frame_form, textvariable=rubro, values=["Telas", "Hilanderia", "Avios", "Tintoreria"], width=27).grid(row=4, column=1, pady=5)
+bf = tk.Frame(fc, bg=WHITE, padx=14, pady=12); bf.pack(fill="x")
+r1 = tk.Frame(bf, bg=WHITE); r1.pack(fill="x", pady=(0,6))
+flat_btn(r1,"Alta",      alta_proveedor,     SUCCESS, SUCCESS_H).pack(side="left", fill="x", expand=True, padx=(0,4))
+flat_btn(r1,"Modificar", modificar_proveedor, ACCENT, ACCENT_H ).pack(side="left", fill="x", expand=True)
+r2 = tk.Frame(bf, bg=WHITE); r2.pack(fill="x", pady=(0,10))
+flat_btn(r2,"Baja",    baja_proveedor,  DANGER,  DANGER_H ).pack(side="left", fill="x", expand=True, padx=(0,4))
+flat_btn(r2,"Limpiar", limpiar_campos,  NEUTRAL, NEUTRAL_H).pack(side="left", fill="x", expand=True)
 
-tk.Label(frame_form, text="Contacto:", bg="white").grid(row=5, column=0, sticky="w", pady=5)
-tk.Entry(frame_form, textvariable=contacto, width=30).grid(row=5, column=1, pady=5)
+tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14)
+bf2 = tk.Frame(fc, bg=WHITE, padx=14, pady=10); bf2.pack(fill="x")
+flat_btn(bf2, "Volver al Menu", ventana.destroy, HEADER, "#2D4E7A").pack(fill="x")
 
-tk.Label(frame_form, text="Estado:", bg="white").grid(row=6, column=0, sticky="w", pady=5)
-ttk.Combobox(frame_form, textvariable=estado, values=["ACTIVO", "BAJA"], state="readonly", width=27).grid(row=6, column=1, pady=5)
+# ── Tarjeta tabla ────────────────────────────────────────────────────────
+sty = ttk.Style(); sty.theme_use("clam")
+sty.configure("I.Treeview", background=WHITE, foreground=TEXT, rowheight=27,
+              fieldbackground=WHITE, font=("Arial",10))
+sty.configure("I.Treeview.Heading", background=HEADER, foreground=WHITE,
+              font=("Arial",10,"bold"), relief="flat", padding=5)
+sty.map("I.Treeview", background=[("selected","#DBEAFE")], foreground=[("selected",HEADER)])
 
-# Botones
-tk.Button(frame_form, text="Alta", width=12, bg="#16A34A", fg="white", command=alta_proveedor).grid(row=7, column=0, pady=15)
-tk.Button(frame_form, text="Modificar", width=12, bg="#2563EB", fg="white", command=modificar_proveedor).grid(row=7, column=1, pady=15)
-tk.Button(frame_form, text="Baja", width=12, bg="#DC2626", fg="white", command=baja_proveedor).grid(row=8, column=0, pady=5)
-tk.Button(frame_form, text="Limpiar", width=12, bg="#6B7280", fg="white", command=limpiar_campos).grid(row=8, column=1, pady=5)
+tc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+tc.place(x=418, y=74, width=578, height=518)
 
-# Tabla
-frame_tabla = tk.Frame(ventana, bg="white")
-frame_tabla.place(x=430, y=80, width=540, height=360)
+tch = tk.Frame(tc, bg=HEADER, height=36); tch.pack(fill="x"); tch.pack_propagate(False)
+tk.Label(tch, text="  Listado de Proveedores", font=("Arial",11,"bold"), bg=HEADER, fg=WHITE).pack(side="left", padx=10, pady=8)
 
-tabla = ttk.Treeview(frame_tabla, columns=("id", "empresa", "cuit", "rubro", "contacto", "estado"), show="headings")
+tf = tk.Frame(tc, bg=WHITE); tf.pack(fill="both", expand=True)
+vsb = ttk.Scrollbar(tf, orient="vertical"); vsb.pack(side="right", fill="y")
 
-tabla.heading("id", text="ID")
-tabla.heading("empresa", text="Razón Social")
-tabla.heading("cuit", text="CUIT")
-tabla.heading("rubro", text="Rubro")
-tabla.heading("contacto", text="Contacto")
-tabla.heading("estado", text="Estado")
+tabla = ttk.Treeview(tf, columns=("id","empresa","cuit","rubro","contacto","estado"),
+                     show="headings", style="I.Treeview", yscrollcommand=vsb.set)
+vsb.configure(command=tabla.yview)
 
-tabla.column("id", width=50)
-tabla.column("empresa", width=110)
-tabla.column("cuit", width=90)
-tabla.column("rubro", width=80)
-tabla.column("contacto", width=110)
-tabla.column("estado", width=70)
+for col, txt, w, anch in [
+    ("id","ID",52,"center"), ("empresa","Razon Social",118,"w"),
+    ("cuit","CUIT",96,"center"), ("rubro","Rubro",86,"w"),
+    ("contacto","Contacto",116,"w"), ("estado","Estado",82,"center")]:
+    tabla.heading(col, text=txt); tabla.column(col, width=w, minwidth=w, anchor=anch)
 
+tabla.tag_configure("alt", background=ROW_ALT); tabla.tag_configure("normal", background=WHITE)
 tabla.pack(fill="both", expand=True)
-tabla.bind("<<TreeviewSelect>>", seleccionar_proveedor)
+tabla.bind("<<TreeviewSelect>>", seleccionar)
 
-# Boton salir
-tk.Button(ventana, text="Salir", width=15, bg="#111827", fg="white", command=ventana.destroy).place(x=820, y=470)
-
-crear_archivo()
-cargar_tabla()
-
+crear_archivo(); cargar_tabla()
 ventana.mainloop()
