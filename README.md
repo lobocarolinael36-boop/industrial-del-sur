@@ -7,6 +7,12 @@ Permite administrar clientes, proveedores, productos y generar facturas de compr
 
 ---
 
+## DER — Diagrama Entidad-Relación
+
+![DER Industrial del Sur](DER_Industrial_del_Sur.svg)
+
+---
+
 ## Módulos del sistema
 
 | Módulo | Archivo | Descripción |
@@ -35,6 +41,7 @@ Los archivos de datos (`clientes.txt`, `proveedores.txt`, `productos.txt`) y la 
 
 | Documento | Descripción |
 |-----------|-------------|
+| [DER — Diagrama Entidad-Relación](DER_Industrial_del_Sur.svg) | Diagrama de entidades y relaciones del sistema |
 | [Manual de Instalación y Rollback](Manual_de_Instalacion_y_Rollback_Industrial_del_Sur.docx) | Requisitos, pasos de instalación, desinstalación, backup y recuperación |
 | [Soporte y Garantía](Soporte_y_Garantia_Industrial_del_Sur.docx) | Período de soporte, canales de atención, clasificación de incidentes y exclusiones |
 | [Manual de Usuario](Manual_de_Usuario_Industrial_del_Sur_Caro_Lobo.docx) | Guía de uso de cada módulo del sistema |
@@ -55,6 +62,7 @@ industriSur/
 ├── proveedores.txt                  # Datos de proveedores
 ├── productos.txt                    # Datos de productos
 ├── facturas_emitidas/               # Facturas generadas (.txt)
+├── DER_Industrial_del_Sur.svg
 ├── Manual_de_Instalacion_y_Rollback_Industrial_del_Sur.docx
 ├── Soporte_y_Garantia_Industrial_del_Sur.docx
 ├── Manual_de_Usuario_Industrial_del_Sur_Caro_Lobo.docx
