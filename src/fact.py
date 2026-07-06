@@ -82,6 +82,15 @@ def actualizar_vista():
     total_var.set(f"TOTAL:  ${total:,}")
     total_lbl.configure(fg="#DC2626" if total > 0 else TEXT)
 
+def quitar_item():
+    sel = tabla_factura.focus()
+    if not sel:
+        messagebox.showwarning("Atencion", "Seleccione un producto de la lista para quitarlo."); return
+    idx = tabla_factura.index(sel)
+    items_factura.pop(idx)
+    actualizar_vista()
+    status_var.set("Producto quitado de la factura.")
+
 def limpiar_pantalla():
     combo_cliente.set(""); combo_producto.set("")
     cantidad.set(""); precio_unitario.set("")
@@ -168,7 +177,9 @@ ff.columnconfigure(1, weight=1)
 
 tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(4,0))
 bf = tk.Frame(fc, bg=WHITE, padx=14, pady=12); bf.pack(fill="x")
-flat_btn(bf,"Agregar Producto", agregar_item,    SUCCESS, SUCCESS_H).pack(fill="x", pady=(0,6))
+r0 = tk.Frame(bf, bg=WHITE); r0.pack(fill="x", pady=(0,6))
+flat_btn(r0,"Agregar Producto", agregar_item, SUCCESS, SUCCESS_H).pack(side="left",fill="x",expand=True,padx=(0,4))
+flat_btn(r0,"Quitar Seleccionado", quitar_item, DANGER, DANGER_H).pack(side="left",fill="x",expand=True)
 r2 = tk.Frame(bf, bg=WHITE); r2.pack(fill="x", pady=(0,10))
 flat_btn(r2,"Emitir Factura", finalizar_factura, ACCENT,  ACCENT_H ).pack(side="left",fill="x",expand=True,padx=(0,4))
 flat_btn(r2,"Limpiar Todo",   limpiar_pantalla,  NEUTRAL, NEUTRAL_H).pack(side="left",fill="x",expand=True)

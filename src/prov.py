@@ -135,7 +135,7 @@ def campo(row, label, var, widget=None):
 
 campo(0, "Identificador:", codigo); campo(1, "Razon Social:", empresa); campo(2, "CUIT:", cuit)
 campo(3, "Rubro:", rubro, ttk.Combobox(ff, textvariable=rubro,
-      values=["Telas","Hilanderia","Avios","Tintoreria"], font=("Arial",10)))
+      values=["Telas","Hilanderia","Avios","Tintoreria"], state="readonly", font=("Arial",10)))
 campo(4, "Telefono:", telefono)
 campo(5, "Estado:", estado, ttk.Combobox(ff, textvariable=estado,
       values=["ACTIVO","BAJA"], state="readonly", font=("Arial",10)))

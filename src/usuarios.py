@@ -97,6 +97,8 @@ def modificar_usuario():
         messagebox.showwarning("Atencion", "Ingrese el ID del usuario."); return
     if not id_usr.get().isdigit():
         messagebox.showerror("Error", "El ID debe ser numerico."); return
+    if len(id_usr.get()) < 7 or len(id_usr.get()) > 8:
+        messagebox.showerror("Error", "El DNI debe tener entre 7 y 8 digitos."); return
     if not nombre.get() or not apellido.get():
         messagebox.showwarning("Atencion", "Nombre y apellido son obligatorios."); return
     usuarios = leer_usuarios(); found = False

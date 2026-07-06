@@ -79,6 +79,8 @@ def baja_producto():
 def modificar_producto():
     if not codigo.get():
         messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
+    if not detalle.get():
+        messagebox.showwarning("Atencion", "El Detalle es obligatorio."); return
     if not precio.get().isdigit():
         messagebox.showerror("Error", "El Precio debe ser estrictamente numerico."); return
     productos = leer_productos(); found = False

@@ -80,10 +80,10 @@ def baja_cliente():
 def modificar_cliente():
     if not codigo.get():
         messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
+    if not all([nombre.get(), apellido.get(), dni.get(), direccion.get()]):
+        messagebox.showwarning("Atencion", "Complete todos los campos."); return
     if not dni.get().isdigit():
         messagebox.showerror("Error", "El DNI debe ser estrictamente numerico."); return
-    if not direccion.get():
-        messagebox.showerror("Error", "La direccion es obligatoria."); return
     clientes = leer_clientes(); found = False
     for c in clientes:
         if c[0] == codigo.get():
