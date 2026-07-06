@@ -39,7 +39,7 @@ def nav_btn(parent, text, cmd, color=ACCENT, hover=ACCENT_H):
 
 root = tk.Tk()
 root.title("Industrial del Sur — Menu Principal")
-root.geometry("400x540")
+root.geometry("400x600")
 root.resizable(False, False)
 root.configure(bg=BG)
 
@@ -63,6 +63,7 @@ nav_btn(content, "  Gestion de Clientes",    lambda: abrir("cli.py"))
 nav_btn(content, "  Gestion de Proveedores", lambda: abrir("prov.py"))
 nav_btn(content, "  Gestion de Productos",   lambda: abrir("prod.py"))
 nav_btn(content, "  Facturacion",            lambda: abrir("fact.py"), SUCCESS, SUCCESS_H)
+nav_btn(content, "  Gestion de Usuarios",    lambda: abrir("usuarios.py"), "#7C3AED", "#6D28D9")
 
 tk.Frame(content, bg=BORDER, height=1).pack(fill="x", pady=16)
 

@@ -22,7 +22,7 @@ def crear_archivo():
         open(ARCHIVO, "w").close()
 
 def limpiar_campos():
-    for v in (codigo, empresa, cuit, contacto): v.set("")
+    for v in (codigo, empresa, cuit, telefono): v.set("")
     rubro.set("Telas"); estado.set("ACTIVO")
     status_var.set("Campos limpiados.")
 
@@ -48,16 +48,18 @@ def cargar_tabla():
     status_var.set(f"{n} proveedor{'es' if n != 1 else ''} registrado{'s' if n != 1 else ''}.")
 
 def alta_proveedor():
-    if not all([codigo.get(), empresa.get(), cuit.get(), rubro.get(), contacto.get()]):
+    if not all([codigo.get(), empresa.get(), cuit.get(), rubro.get(), telefono.get()]):
         messagebox.showwarning("Atencion", "Complete todos los campos."); return
     if not codigo.get().isdigit():
-        messagebox.showerror("Error", "El Identificador debe ser numerico."); return
+        messagebox.showerror("Error", "El Identificador debe ser estrictamente numerico."); return
     if not cuit.get().isdigit():
-        messagebox.showerror("Error", "El CUIT debe ser numerico (sin guiones)."); return
+        messagebox.showerror("Error", "El CUIT debe ser estrictamente numerico (sin guiones)."); return
+    if not telefono.get().isdigit():
+        messagebox.showerror("Error", "El Telefono debe ser estrictamente numerico (sin espacios ni guiones)."); return
     proveedores = leer_proveedores()
     if any(p[0] == codigo.get() for p in proveedores):
         messagebox.showerror("Error", "El Identificador ya existe."); return
-    proveedores.append([codigo.get(), empresa.get(), cuit.get(), rubro.get(), contacto.get(), estado.get()])
+    proveedores.append([codigo.get(), empresa.get(), cuit.get(), rubro.get(), telefono.get(), estado.get()])
     guardar_proveedores(proveedores); cargar_tabla(); limpiar_campos()
     messagebox.showinfo("Alta", "Proveedor dado de alta correctamente.")
 
@@ -75,13 +77,17 @@ def baja_proveedor():
 def modificar_proveedor():
     if not codigo.get():
         messagebox.showwarning("Atencion", "Ingrese el Identificador."); return
+    if not all([empresa.get(), cuit.get(), rubro.get(), telefono.get()]):
+        messagebox.showwarning("Atencion", "Complete todos los campos."); return
     if not cuit.get().isdigit():
-        messagebox.showerror("Error", "El CUIT debe ser numerico."); return
+        messagebox.showerror("Error", "El CUIT debe ser estrictamente numerico (sin guiones)."); return
+    if not telefono.get().isdigit():
+        messagebox.showerror("Error", "El Telefono debe ser estrictamente numerico (sin espacios ni guiones)."); return
     proveedores = leer_proveedores(); found = False
     for p in proveedores:
         if p[0] == codigo.get():
             p[1]=empresa.get(); p[2]=cuit.get(); p[3]=rubro.get()
-            p[4]=contacto.get(); p[5]=estado.get(); found=True
+            p[4]=telefono.get(); p[5]=estado.get(); found=True
     guardar_proveedores(proveedores); cargar_tabla()
     (messagebox.showinfo if found else messagebox.showerror)(
         "Modificacion" if found else "Error",
@@ -92,7 +98,7 @@ def seleccionar(event):
     if sel:
         v = tabla.item(sel, "values")
         codigo.set(v[0]); empresa.set(v[1]); cuit.set(v[2])
-        rubro.set(v[3]); contacto.set(v[4]); estado.set(v[5])
+        rubro.set(v[3]); telefono.set(v[4]); estado.set(v[5])
 
 # ── Ventana ──────────────────────────────────────────────────────────────
 ventana = tk.Tk()
@@ -114,7 +120,7 @@ tk.Label(ftr, textvariable=status_var, font=("Arial",9), bg=HEADER, fg="#93C5FD"
 
 # Variables
 codigo=tk.StringVar(); empresa=tk.StringVar(); cuit=tk.StringVar()
-rubro=tk.StringVar(value="Telas"); contacto=tk.StringVar(); estado=tk.StringVar(value="ACTIVO")
+rubro=tk.StringVar(value="Telas"); telefono=tk.StringVar(); estado=tk.StringVar(value="ACTIVO")
 
 # ── Tarjeta formulario ───────────────────────────────────────────────────
 fc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
@@ -135,7 +141,7 @@ campo(1, "Razon Social:",   empresa)
 campo(2, "CUIT:",          cuit)
 campo(3, "Rubro:", rubro, ttk.Combobox(ff, textvariable=rubro,
       values=["Telas","Hilanderia","Avios","Tintoreria"], font=("Arial",10)))
-campo(4, "Contacto:",      contacto)
+campo(4, "Telefono:",      telefono)
 campo(5, "Estado:", estado, ttk.Combobox(ff, textvariable=estado,
       values=["ACTIVO","BAJA"], state="readonly", font=("Arial",10)))
 ff.columnconfigure(1, weight=1)
@@ -171,14 +177,14 @@ tk.Label(tch, text="  Listado de Proveedores", font=("Arial",11,"bold"), bg=HEAD
 tf = tk.Frame(tc, bg=WHITE); tf.pack(fill="both", expand=True)
 vsb = ttk.Scrollbar(tf, orient="vertical"); vsb.pack(side="right", fill="y")
 
-tabla = ttk.Treeview(tf, columns=("id","empresa","cuit","rubro","contacto","estado"),
+tabla = ttk.Treeview(tf, columns=("id","empresa","cuit","rubro","telefono","estado"),
                      show="headings", style="I.Treeview", yscrollcommand=vsb.set)
 vsb.configure(command=tabla.yview)
 
 for col, txt, w, anch in [
     ("id","ID",52,"center"), ("empresa","Razon Social",118,"w"),
     ("cuit","CUIT",96,"center"), ("rubro","Rubro",86,"w"),
-    ("contacto","Contacto",116,"w"), ("estado","Estado",82,"center")]:
+    ("telefono","Telefono",116,"center"), ("estado","Estado",82,"center")]:
     tabla.heading(col, text=txt); tabla.column(col, width=w, minwidth=w, anchor=anch)
 
 tabla.tag_configure("alt", background=ROW_ALT); tabla.tag_configure("normal", background=WHITE)
