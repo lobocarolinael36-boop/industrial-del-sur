@@ -3,9 +3,11 @@ from tkinter import ttk, messagebox
 import os
 from datetime import datetime
 
-ARCHIVO_CLIENTES  = "clientes.txt"
-ARCHIVO_PRODUCTOS = "productos.txt"
-CARPETA_FACTURAS  = "facturas_emitidas"
+_HERE             = os.path.dirname(os.path.abspath(__file__))
+_DATA             = os.path.normpath(os.path.join(_HERE, "..", "data"))
+ARCHIVO_CLIENTES  = os.path.join(_DATA, "clientes.txt")
+ARCHIVO_PRODUCTOS = os.path.join(_DATA, "productos.txt")
+CARPETA_FACTURAS  = os.path.join(_DATA, "facturas_emitidas")
 
 HEADER   = "#1E3A5F"; ACCENT="#2563EB"; ACCENT_H="#1D4ED8"
 SUCCESS  = "#16A34A"; SUCCESS_H="#15803D"; DANGER="#DC2626"; DANGER_H="#B91C1C"
@@ -26,8 +28,7 @@ def flat_btn(parent, text, command, bg, hover):
     return btn
 
 def inicializar_entorno():
-    if not os.path.exists(CARPETA_FACTURAS):
-        os.makedirs(CARPETA_FACTURAS)
+    os.makedirs(CARPETA_FACTURAS, exist_ok=True)
 
 def cargar_datos_combobox():
     clientes_dict.clear(); combo_cliente['values'] = ()
@@ -126,12 +127,9 @@ def finalizar_factura():
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo guardar la factura:\n{e}")
 
-# ── Ventana ──────────────────────────────────────────────────────────────
 ventana = tk.Tk()
 ventana.title("Facturacion — Industrial del Sur")
-ventana.geometry("1020x618")
-ventana.resizable(False, False)
-ventana.configure(bg=BG)
+ventana.geometry("1020x618"); ventana.resizable(False, False); ventana.configure(bg=BG)
 
 hdr = tk.Frame(ventana, bg=HEADER, height=66)
 hdr.pack(fill="x"); hdr.pack_propagate(False)
@@ -144,90 +142,64 @@ ftr.pack(fill="x", side="bottom"); ftr.pack_propagate(False)
 status_var = tk.StringVar(value="Seleccione un cliente y agregue productos.")
 tk.Label(ftr, textvariable=status_var, font=("Arial",9), bg=HEADER, fg="#93C5FD").pack(side="left", padx=12, pady=4)
 
-cantidad       = tk.StringVar()
-precio_unitario= tk.StringVar()
-total_var      = tk.StringVar(value="TOTAL:  $0")
+cantidad=tk.StringVar(); precio_unitario=tk.StringVar(); total_var=tk.StringVar(value="TOTAL:  $0")
 
-# ── Tarjeta formulario ───────────────────────────────────────────────────
 fc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
 fc.place(x=24, y=74, width=378, height=518)
-
 fch = tk.Frame(fc, bg=ACCENT, height=36); fch.pack(fill="x"); fch.pack_propagate(False)
 tk.Label(fch, text="  Datos de la Venta", font=("Arial",11,"bold"), bg=ACCENT, fg=WHITE).pack(side="left", padx=10, pady=8)
 
 ff = tk.Frame(fc, bg=WHITE, padx=18, pady=12); ff.pack(fill="x")
-
 def lbl(t): return tk.Label(ff, text=t, bg=WHITE, fg=TEXT, font=("Arial",10,"bold"), anchor="w")
 
 lbl("Cliente:").grid(row=0, column=0, sticky="w", pady=(0,4))
 combo_cliente = ttk.Combobox(ff, state="readonly", font=("Arial",10))
 combo_cliente.grid(row=0, column=1, sticky="ew", pady=(0,4), padx=(10,0))
-
 tk.Frame(ff, bg=BORDER, height=1).grid(row=1, column=0, columnspan=2, sticky="ew", pady=12)
-
 lbl("Producto:").grid(row=2, column=0, sticky="w", pady=(0,4))
 combo_producto = ttk.Combobox(ff, state="readonly", font=("Arial",10))
 combo_producto.grid(row=2, column=1, sticky="ew", pady=(0,4), padx=(10,0))
 combo_producto.bind("<<ComboboxSelected>>", actualizar_precio)
-
 lbl("Precio Unit:").grid(row=3, column=0, sticky="w", pady=(6,4))
-tk.Entry(ff, textvariable=precio_unitario, font=("Arial",10),
-         relief="solid", bd=1, state="readonly").grid(row=3, column=1, sticky="ew", pady=(6,4), padx=(10,0))
-
+tk.Entry(ff, textvariable=precio_unitario, font=("Arial",10), relief="solid", bd=1, state="readonly").grid(row=3, column=1, sticky="ew", pady=(6,4), padx=(10,0))
 lbl("Cantidad:").grid(row=4, column=0, sticky="w", pady=(6,4))
-tk.Entry(ff, textvariable=cantidad, font=("Arial",10),
-         relief="solid", bd=1).grid(row=4, column=1, sticky="ew", pady=(6,4), padx=(10,0))
+tk.Entry(ff, textvariable=cantidad, font=("Arial",10), relief="solid", bd=1).grid(row=4, column=1, sticky="ew", pady=(6,4), padx=(10,0))
 ff.columnconfigure(1, weight=1)
 
 tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(4,0))
-
 bf = tk.Frame(fc, bg=WHITE, padx=14, pady=12); bf.pack(fill="x")
-flat_btn(bf, "Agregar Producto", agregar_item, SUCCESS, SUCCESS_H).pack(fill="x", pady=(0,6))
-
+flat_btn(bf,"Agregar Producto", agregar_item,    SUCCESS, SUCCESS_H).pack(fill="x", pady=(0,6))
 r2 = tk.Frame(bf, bg=WHITE); r2.pack(fill="x", pady=(0,10))
-flat_btn(r2,"Emitir Factura", finalizar_factura, ACCENT,  ACCENT_H ).pack(side="left", fill="x", expand=True, padx=(0,4))
-flat_btn(r2,"Limpiar Todo",   limpiar_pantalla,  NEUTRAL, NEUTRAL_H).pack(side="left", fill="x", expand=True)
-
+flat_btn(r2,"Emitir Factura", finalizar_factura, ACCENT,  ACCENT_H ).pack(side="left",fill="x",expand=True,padx=(0,4))
+flat_btn(r2,"Limpiar Todo",   limpiar_pantalla,  NEUTRAL, NEUTRAL_H).pack(side="left",fill="x",expand=True)
 tk.Frame(fc, bg=BORDER, height=1).pack(fill="x", padx=14)
 bf2 = tk.Frame(fc, bg=WHITE, padx=14, pady=10); bf2.pack(fill="x")
-flat_btn(bf2, "Volver al Menu", ventana.destroy, HEADER, "#2D4E7A").pack(fill="x")
+flat_btn(bf2,"Volver al Menu", ventana.destroy, HEADER, "#2D4E7A").pack(fill="x")
 
-# ── Tarjeta tabla ────────────────────────────────────────────────────────
 sty = ttk.Style(); sty.theme_use("clam")
-sty.configure("I.Treeview", background=WHITE, foreground=TEXT, rowheight=27,
-              fieldbackground=WHITE, font=("Arial",10))
-sty.configure("I.Treeview.Heading", background=HEADER, foreground=WHITE,
-              font=("Arial",10,"bold"), relief="flat", padding=5)
+sty.configure("I.Treeview", background=WHITE, foreground=TEXT, rowheight=27, fieldbackground=WHITE, font=("Arial",10))
+sty.configure("I.Treeview.Heading", background=HEADER, foreground=WHITE, font=("Arial",10,"bold"), relief="flat", padding=5)
 sty.map("I.Treeview", background=[("selected","#DBEAFE")], foreground=[("selected",HEADER)])
 
 tc = tk.Frame(ventana, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
 tc.place(x=418, y=74, width=578, height=518)
-
 tch = tk.Frame(tc, bg=HEADER, height=36); tch.pack(fill="x"); tch.pack_propagate(False)
 tk.Label(tch, text="  Detalle de la Factura", font=("Arial",11,"bold"), bg=HEADER, fg=WHITE).pack(side="left", padx=10, pady=8)
 
 tf = tk.Frame(tc, bg=WHITE); tf.pack(fill="both", expand=True)
 vsb = ttk.Scrollbar(tf, orient="vertical"); vsb.pack(side="right", fill="y")
-
 tabla_factura = ttk.Treeview(tf, columns=("id","detalle","cant","precio_u","subtotal"),
                               show="headings", style="I.Treeview", yscrollcommand=vsb.set)
 vsb.configure(command=tabla_factura.yview)
-
-for col, txt, w, anch in [
-    ("id","ID",52,"center"), ("detalle","Detalle del Producto",200,"w"),
-    ("cant","Cant.",64,"center"), ("precio_u","Precio U.",92,"center"),
-    ("subtotal","Subtotal",100,"center")]:
-    tabla_factura.heading(col, text=txt); tabla_factura.column(col, width=w, minwidth=w, anchor=anch)
-
-tabla_factura.tag_configure("alt", background=ROW_ALT); tabla_factura.tag_configure("normal", background=WHITE)
+for col,txt,w,anch in [("id","ID",52,"center"),("detalle","Detalle del Producto",200,"w"),
+    ("cant","Cant.",64,"center"),("precio_u","Precio U.",92,"center"),("subtotal","Subtotal",100,"center")]:
+    tabla_factura.heading(col,text=txt); tabla_factura.column(col,width=w,minwidth=w,anchor=anch)
+tabla_factura.tag_configure("alt",background=ROW_ALT); tabla_factura.tag_configure("normal",background=WHITE)
 tabla_factura.pack(fill="both", expand=True)
 
-# Total display
-total_frame = tk.Frame(tc, bg=WHITE, pady=12)
-total_frame.pack(fill="x")
+total_frame = tk.Frame(tc, bg=WHITE, pady=12); total_frame.pack(fill="x")
 tk.Frame(total_frame, bg=BORDER, height=1).pack(fill="x", padx=14, pady=(0,10))
-total_lbl = tk.Label(total_frame, textvariable=total_var,
-                     font=("Arial", 16, "bold"), bg=WHITE, fg=TEXT)
+total_lbl = tk.Label(total_frame, textvariable=total_var, font=("Arial",16,"bold"), bg=WHITE, fg=TEXT)
 total_lbl.pack(anchor="e", padx=20)
 
 inicializar_entorno(); cargar_datos_combobox()

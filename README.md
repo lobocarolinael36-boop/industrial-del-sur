@@ -21,10 +21,10 @@
 python --version
 
 # Ejecutar el sistema
-python menu.py
+python iniciar.py
 ```
 
-Los archivos de datos (`clientes.txt`, `proveedores.txt`, `productos.txt`) y la carpeta `facturas_emitidas/` **se crean automáticamente** la primera vez que se usa cada módulo.
+Los archivos de datos (`clientes.txt`, `proveedores.txt`, `productos.txt`) y la carpeta `facturas_emitidas/` se crean automáticamente dentro de `data/` la primera vez que se usa cada módulo.
 
 ---
 
@@ -32,11 +32,12 @@ Los archivos de datos (`clientes.txt`, `proveedores.txt`, `productos.txt`) y la 
 
 | Módulo | Archivo | Descripción |
 |--------|---------|-------------|
-| Menú Principal | `menu.py` | Punto de entrada del sistema |
-| Gestión de Clientes | `cli.py` | ABM de clientes |
-| Gestión de Proveedores | `prov.py` | ABM de proveedores |
-| Gestión de Productos | `prod.py` | ABM de productos con talle, color y precio |
-| Facturación | `fact.py` | Generación de facturas por cliente y productos |
+| Menú Principal | `src/menu.py` | Punto de entrada del sistema |
+| Gestión de Clientes | `src/cli.py` | ABM de clientes |
+| Gestión de Proveedores | `src/prov.py` | ABM de proveedores |
+| Gestión de Productos | `src/prod.py` | ABM de productos con talle, color y precio |
+| Facturación | `src/fact.py` | Generación de facturas por cliente y productos |
+| Gestión de Usuarios | `src/usuarios.py` | ABM de usuarios con roles y estados |
 
 ---
 
@@ -93,12 +94,12 @@ Copiar la carpeta completa del repositorio al equipo. Ejemplo:
 ```
 C:\Sistemas\industriSur
 ```
-La carpeta debe contener: `menu.py`, `cli.py`, `prov.py`, `prod.py`, `fact.py`.
+La carpeta debe contener: `iniciar.py` y la carpeta `src/` con todos los módulos.
 
 **Paso 4 — Ejecutar el sistema**
 ```
 cd C:\Sistemas\industriSur
-python menu.py
+python iniciar.py
 ```
 Se abrirá la ventana gráfica del Menú Principal.
 
@@ -141,9 +142,9 @@ Los archivos `.txt` usan `|` (pipe) como separador. Cada línea es un registro:
 En caso de actualización fallida o comportamiento inesperado:
 
 1. **Detener el sistema** — cerrar todas las ventanas abiertas
-2. **Reemplazar archivos** — restaurar los `.py` desde la copia de seguridad anterior (ver Sección 5)
-3. **Verificar datos** — cada línea de los `.txt` debe tener exactamente 6 campos separados por `|`
-4. **Reiniciar** — ejecutar nuevamente `python menu.py`
+2. **Reemplazar archivos** — restaurar la carpeta `src/` desde la copia de seguridad anterior (ver Sección 5)
+3. **Verificar datos** — cada línea de los `.txt` debe tener exactamente los campos correctos separados por `|`
+4. **Reiniciar** — ejecutar nuevamente `python iniciar.py`
 
 ---
 
@@ -151,9 +152,9 @@ En caso de actualización fallida o comportamiento inesperado:
 
 ### 5.1 ¿Qué copiar?
 
-- **Código fuente:** `menu.py`, `cli.py`, `prov.py`, `prod.py`, `fact.py`
-- **Datos:** `clientes.txt`, `proveedores.txt`, `productos.txt`
-- **Facturas:** toda la carpeta `facturas_emitidas/`
+- **Código fuente:** carpeta `src/` completa e `iniciar.py`
+- **Datos:** carpeta `data/` completa (`clientes.txt`, `proveedores.txt`, `productos.txt`, `usuarios.txt`)
+- **Facturas:** carpeta `data/facturas_emitidas/`
 
 ### 5.2 Frecuencia recomendada
 
@@ -179,8 +180,8 @@ Nombrar la copia con la fecha. Ejemplo: `industriSur_backup_2026-06-19`
 
 1. Localizar la copia de seguridad más reciente
 2. Copiar los `.py` al directorio del sistema
-3. Verificar que estén todos: `menu.py`, `cli.py`, `prov.py`, `prod.py`, `fact.py`
-4. Ejecutar `python menu.py` para verificar
+3. Verificar que la carpeta `src/` contenga todos los módulos
+4. Ejecutar `python iniciar.py` para verificar
 
 ### Caso 2 — Pérdida o corrupción de datos (.txt)
 
@@ -299,16 +300,20 @@ El soporte y garantía **NO cubre** las siguientes situaciones:
 
 ```
 industrial-del-sur/
-├── menu.py                    # Menú principal
-├── cli.py                     # Módulo clientes
-├── prov.py                    # Módulo proveedores
-├── prod.py                    # Módulo productos
-├── fact.py                    # Módulo facturación
-├── clientes.txt               # Datos de clientes
-├── proveedores.txt            # Datos de proveedores
-├── productos.txt              # Datos de productos
-├── facturas_emitidas/         # Facturas generadas (.txt)
-└── docs/
+├── iniciar.py                 # Lanzador principal
+├── src/                       # Código fuente
+│   ├── menu.py                # Menú principal
+│   ├── cli.py                 # Módulo clientes
+│   ├── prov.py                # Módulo proveedores
+│   ├── prod.py                # Módulo productos
+│   ├── fact.py                # Módulo facturación
+│   └── usuarios.py            # Módulo usuarios
+├── data/                      # Datos generados en tiempo de ejecución
+│   ├── clientes.txt
+│   ├── proveedores.txt
+│   ├── productos.txt
+│   └── facturas_emitidas/     # Facturas generadas (.txt)
+└── docs/                      # Documentación del proyecto
     ├── DER.svg                           # Diagrama Entidad-Relación
     ├── Manual_Instalacion_Rollback.docx  # Manual instalación
     ├── Soporte_Garantia.docx             # Soporte y garantía
@@ -323,12 +328,13 @@ industrial-del-sur/
 Todos los datos se persisten en archivos `.txt` con `|` como separador:
 
 ```
-clientes.txt     →  ID | Nombre | Apellido | DNI | Dirección | Estado
-proveedores.txt  →  ID | Razón Social | CUIT | Rubro | Contacto | Estado
-productos.txt    →  ID | Detalle | Talle | Color | Precio | Estado
+data/clientes.txt     →  ID | Nombre | Apellido | DNI | Dirección | Estado
+data/proveedores.txt  →  ID | Razón Social | CUIT | Rubro | Teléfono | Estado
+data/productos.txt    →  ID | Detalle | Talle | Color | Precio | Estado
+data/usuarios.txt     →  ID | Nombre | Apellido | Password | Rol | Estado | FechaModificacion
 ```
 
-Las facturas se guardan como archivos `.txt` en `facturas_emitidas/` con el formato:
+Las facturas se guardan como archivos `.txt` en `data/facturas_emitidas/` con el formato:
 ```
 Factura_<DNI>_<YYYYMMDD_HHMMSS>.txt
 ```
